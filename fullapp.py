@@ -23,8 +23,9 @@ def treequerycalc(df, k):
 
 def GetNNs(SampleList, dfList, k):
 	dbar = []
-	dexp = []
 	nni = []
+	dsd = []
+	nnisd = []
 
 	for sample in SampleList:
 		nndlist = []
@@ -33,13 +34,17 @@ def GetNNs(SampleList, dfList, k):
 			if entry['name'].startswith(sample['name']):
 				nndlist.extend(list(entry['df'].loc[:, 'dist1':].iloc[:, :k].values.flat))
 				npts += len(entry['df'].index)
+		
 		NNdbar = np.mean(nndlist)
+		NNdsd = np.std(nndlist)
 		d_expected = 0.5 * (5 * (3072 * 2304) / npts) ** 0.5
 		
 		dbar.append(NNdbar)
-		dexp.append(d_expected)
 		nni.append(NNdbar / d_expected)
-	return dbar, nni
+		dsd.append(NNdsd / 2)
+		nnisd.append(NNdsd / d_expected)
+		
+	return dbar, nni, dsd, nnisd
 
 def mad(data, axis=None):
     return np.mean(np.absolute(data - np.mean(data, axis)), axis)
@@ -52,6 +57,9 @@ def angledev(ang1, ang2):
 def getMeanQDiffs(SampleList, dfList, qName, k):
 	qbar = []
 	qi = []
+	qsd = []
+	qisd = []
+	
 	for sample in SampleList:
 		nnqlist = []
 		for entry in dfList:
@@ -69,12 +77,15 @@ def getMeanQDiffs(SampleList, dfList, qName, k):
          
        
 		NNQbar = np.mean(nnqlist)
+		NNQsd = np.std(nnqlist)
 		NNQexp = mad(nnqlist)
     
 		qbar.append(NNQbar)
 		qi.append(NNQbar / NNQexp)
+		qsd.append(NNQsd)
+		qisd.append(NNQsd / NNQexp)
 	
-	return qbar, qi
+	return qbar, qi, qsd, qisd
 	
 #Load Data from files
 SampleList = [{'name': 'r1c1', 'time': 130, 'color': '#38AB80'},
@@ -102,20 +113,26 @@ for file in filelist:
 #Set up Data
 x = [sample['time'] for sample in SampleList]
 color = [sample['color'] for sample in SampleList]
-dbar, nni = GetNNs(SampleList, dfList, 1)
-qbar, qnni = getMeanQDiffs(SampleList, dfList, 'Area', 1)
+dbar, nni, dsd, nnisd = GetNNs(SampleList, dfList, 1)
+qbar, qnni, qsd, qisd = getMeanQDiffs(SampleList, dfList, 'Area', 1)
 
-s1 = ColumnDataSource(data = dict(x = x, y = dbar, color = color))
-s2 = ColumnDataSource(data = dict(x = x, y = qbar, color = color))
-s3 = ColumnDataSource(data = dict(x = qbar, y = qbar, color = color))
+s1 = ColumnDataSource(data = dict(x = x, y = dbar, sd = dsd, color = color))
+s2 = ColumnDataSource(data = dict(x = x, y = qbar, sd = qsd, color = color))
+s3 = ColumnDataSource(data = dict(x = qbar, xsd = qsd, y = qbar, ysd = qsd, 
+					  color = color))
 	
 #Set up plot
 p1 = figure(width = 600, height = 400, title = 'NND',
 			x_axis_label = 'Formation time, s')
-p1.circle('x', 'y', color = 'color', source = s1, size = 12)
+p1.ray('x', 'y', length = 'sd', source = s1, angle = 90, line_width = 2, angle_units = 'deg')
+p1.ray('x', 'y', length = 'sd', source = s1, angle = 270, line_width = 2, angle_units = 'deg')
+p1.circle('x', 'y', color = 'color', source = s1, size = 12, alpha = 0.5)
+
 
 p2 = figure(width = 600, height = 400, title = 'NNQ',
 			x_axis_label = 'Formation time, s')
+p2.ray('x', 'y', length = 'sd', source = s2, angle = 90, line_width = 2, angle_units = 'deg')
+p2.ray('x', 'y', length = 'sd', source = s2, angle = 270, line_width = 2, angle_units = 'deg')
 p2.circle('x', 'y', color = 'color', source = s2, size = 12)
 
 p3 = figure(width = 600, height = 400, title = 'NNQ',
@@ -145,17 +162,19 @@ def update_data(attrname, old, new):
 	color = [sample['color'] for sample in SampleList]
 	dresult = GetNNs(SampleList, dfList, ks)
 	s1y = dresult[rbg]
+	s1sd = dresult[(rbg + 2)]
 	
 	qresult = getMeanQDiffs(SampleList, dfList, qName, ks)
 	s2y = qresult[rbg]
+	s2sd = qresult[(rbg + 2)]
 	
 	s3x = getMeanQDiffs(SampleList, dfList, x3name, ks)[rbg]
 	s3y = getMeanQDiffs(SampleList, dfList, y3name, ks)[rbg]
 	
-	s1.data = dict(x = x, y = s1y, color = color)
+	s1.data = dict(x = x, y = s1y, sd = s1sd, color = color)
 	p1.title.text = 'NNI, Average of nearest ' + str(ks) + ' neighbors'
 		
-	s2.data = dict(x = x, y = s2y, color = color)
+	s2.data = dict(x = x, y = s2y, sd = s2sd, color = color)
 	p2.title.text = 'NN ' + qName + ' difference, average of nearest ' + str(ks) + ' neighbors'
 	
 	s3.data = dict(x = s3x, y = s3y, color = color)
