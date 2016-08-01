@@ -9,10 +9,9 @@ from bokeh.models import ColumnDataSource
 from bokeh.models.widgets import Slider, TextInput, RadioButtonGroup, Dropdown
 from bokeh.plotting import figure
 
-#a comment!
-#and a 2nd comment!!!!
+
 filelist = ['data/' + f for f in os.listdir('data') if f.endswith('.xls')]
-#now i added a comment here
+
 
 def treequerycalc(df, k):
     
@@ -108,7 +107,7 @@ qbar, qnni = getMeanQDiffs(SampleList, dfList, 'Area', 1)
 
 s1 = ColumnDataSource(data = dict(x = x, y = dbar, color = color))
 s2 = ColumnDataSource(data = dict(x = x, y = qbar, color = color))
-s3 = ColumnDataSource(data = dict(x = dbar, y = qbar, color = color))
+s3 = ColumnDataSource(data = dict(x = qbar, y = qbar, color = color))
 	
 #Set up plot
 p1 = figure(width = 600, height = 400, title = 'NND',
@@ -128,10 +127,10 @@ p3.circle('x', 'y', color = 'color', source = s3, size = 12)
 kneighb = Slider(title = 'Number of nearest neighbors to average', value = 1, start = 1, end = (k - 1), step = 1)
 radio_button_group = RadioButtonGroup(labels=["NN Distance", "NN Index"], active=0)
 menu = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation')]
-dropdown = Dropdown(label = 'Parameter', menu = menu)
+dropdown = Dropdown(label = 'Parameter', menu = menu, default_value = 'Area')
 menu2 = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation'), ('Distance', 'Distance')]
-x3drop = Dropdown(label = 'X-axis', menu = menu2)
-y3drop = Dropdown(label = 'Y-axis', menu = menu2)
+x3drop = Dropdown(label = 'X-axis', menu = menu2, default_value = 'Area')
+y3drop = Dropdown(label = 'Y-axis', menu = menu2, default_value = 'Area')
 w = widgetbox(kneighb, radio_button_group, dropdown, x3drop, y3drop)
 
 #Set up callbacks
