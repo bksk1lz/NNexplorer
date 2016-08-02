@@ -41,7 +41,7 @@ def GetNNs(SampleList, dfList, k):
 		
 		dbar.append(NNdbar)
 		nni.append(NNdbar / d_expected)
-		dsd.append(NNdsd / 2)
+		dsd.append(NNdsd)
 		nnisd.append(NNdsd / d_expected)
 		
 	return dbar, nni, dsd, nnisd
@@ -116,24 +116,36 @@ color = [sample['color'] for sample in SampleList]
 dbar, nni, dsd, nnisd = GetNNs(SampleList, dfList, 1)
 qbar, qnni, qsd, qisd = getMeanQDiffs(SampleList, dfList, 'Area', 1)
 
-s1 = ColumnDataSource(data = dict(x = x, y = dbar, sd = dsd, color = color))
-s2 = ColumnDataSource(data = dict(x = x, y = qbar, sd = qsd, color = color))
+sd_factor = 4
+
+dsdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(dbar, dsd)]
+dsdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(dbar, dsd)]
+
+qsdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(qbar, qsd)]
+qsdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(qbar, qsd)]
+ 
+
+s1 = ColumnDataSource(data = dict(x = x, y = dbar, 
+	                              sdplus = dsdplus, sdminus = dsdminus, 
+					              color = color))
+s2 = ColumnDataSource(data = dict(x = x, y = qbar, 
+                                  sdplus = qsdplus, sdminus = qsdminus, 
+								  color = color))
 s3 = ColumnDataSource(data = dict(x = qbar, xsd = qsd, y = qbar, ysd = qsd, 
 					  color = color))
 	
 #Set up plot
 p1 = figure(width = 600, height = 400, title = 'NND',
 			x_axis_label = 'Formation time, s')
-p1.ray('x', 'y', length = 'sd', source = s1, angle = 90, line_width = 2, angle_units = 'deg')
-p1.ray('x', 'y', length = 'sd', source = s1, angle = 270, line_width = 2, angle_units = 'deg')
-p1.circle('x', 'y', color = 'color', source = s1, size = 12, alpha = 0.5)
+p1.segment('x', 'sdplus', 'x', 'sdminus', source = s1, line_width = 2)
+p1.circle('x', 'y', color = 'color', source = s1, size = 12, alpha = 0.65)
 
 
 p2 = figure(width = 600, height = 400, title = 'NNQ',
 			x_axis_label = 'Formation time, s')
-p2.ray('x', 'y', length = 'sd', source = s2, angle = 90, line_width = 2, angle_units = 'deg')
-p2.ray('x', 'y', length = 'sd', source = s2, angle = 270, line_width = 2, angle_units = 'deg')
-p2.circle('x', 'y', color = 'color', source = s2, size = 12)
+
+p2.segment('x', 'sdplus', 'x', 'sdminus', source = s2, line_width = 2)
+p2.circle('x', 'y', color = 'color', source = s2, size = 12, alpha = 0.65)
 
 p3 = figure(width = 600, height = 400, title = 'NNQ',
 			x_axis_label = 'Distance',
@@ -163,18 +175,24 @@ def update_data(attrname, old, new):
 	dresult = GetNNs(SampleList, dfList, ks)
 	s1y = dresult[rbg]
 	s1sd = dresult[(rbg + 2)]
+	s1sdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s1y, s1sd)]
+	s1sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s1y, s1sd)]
 	
 	qresult = getMeanQDiffs(SampleList, dfList, qName, ks)
 	s2y = qresult[rbg]
 	s2sd = qresult[(rbg + 2)]
+	s2sdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
+	s2sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	
 	s3x = getMeanQDiffs(SampleList, dfList, x3name, ks)[rbg]
 	s3y = getMeanQDiffs(SampleList, dfList, y3name, ks)[rbg]
 	
-	s1.data = dict(x = x, y = s1y, sd = s1sd, color = color)
+	s1.data = dict(x = x, y = s1y, sdplus = s1sdplus, sdminus = s1sdminus, 
+	               color = color)
 	p1.title.text = 'NNI, Average of nearest ' + str(ks) + ' neighbors'
 		
-	s2.data = dict(x = x, y = s2y, sd = s2sd, color = color)
+	s2.data = dict(x = x, y = s2y, sdplus = s2sdplus, sdminus = s2sdminus, 
+	               color = color)
 	p2.title.text = 'NN ' + qName + ' difference, average of nearest ' + str(ks) + ' neighbors'
 	
 	s3.data = dict(x = s3x, y = s3y, color = color)
