@@ -131,8 +131,9 @@ s1 = ColumnDataSource(data = dict(x = x, y = dbar,
 s2 = ColumnDataSource(data = dict(x = x, y = qbar, 
                                   sdplus = qsdplus, sdminus = qsdminus, 
 								  color = color))
-s3 = ColumnDataSource(data = dict(x = qbar, xsd = qsd, y = qbar, ysd = qsd, 
-					  color = color))
+s3 = ColumnDataSource(data = dict(x = qbar, xsdplus = qsdplus, xsdminus = qsdminus,
+	                              y = qbar, ysdplus = qsdplus, ysdminus = qsdminus,
+								  color = color))
 	
 #Set up plot
 p1 = figure(width = 600, height = 400, title = 'NND',
@@ -150,7 +151,9 @@ p2.circle('x', 'y', color = 'color', source = s2, size = 12, alpha = 0.65)
 p3 = figure(width = 600, height = 400, title = 'NNQ',
 			x_axis_label = 'Distance',
 			y_axis_label = 'Area')
-p3.circle('x', 'y', color = 'color', source = s3, size = 12)
+p3.segment('x', 'ysdplus', 'x', 'ysdminus', source = s3, line_width = 2)
+p3.segment('xsdplus', 'y', 'xsdminus', 'y', source = s3, line_width = 2)
+p3.circle('x', 'y', color = 'color', source = s3, size = 12, alpha = 0.65)
 
 # Set up widgets
 kneighb = Slider(title = 'Number of nearest neighbors to average', value = 1, start = 1, end = (k - 1), step = 1)
@@ -184,8 +187,27 @@ def update_data(attrname, old, new):
 	s2sdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	s2sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	
-	s3x = getMeanQDiffs(SampleList, dfList, x3name, ks)[rbg]
-	s3y = getMeanQDiffs(SampleList, dfList, y3name, ks)[rbg]
+	if x3name == 'Distance':
+		s3x = dresult[rbg]
+		s3xsd = dresult[(rbg + 2)]
+	else:
+		s3xqresult = getMeanQDiffs(SampleList, dfList, x3name, ks)
+		s3x = s3xqresult[rbg]
+		s3xsd = s3xqresult[(rbg + 2)]
+	
+	s3xsdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s3x, s3xsd)]
+	s3xsdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s3x, s3xsd)]	
+	
+	if y3name == 'Distance':
+		s3y = dresult[rbg]
+		s3ysd = dresult[(rbg + 2)]
+	else:
+		s3yqresult = getMeanQDiffs(SampleList, dfList, y3name, ks)
+		s3y = s3yqresult[rbg]
+		s3ysd = s3yqresult[(rbg + 2)]
+		
+	s3ysdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s3y, s3ysd)]
+	s3ysdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s3y, s3ysd)]	
 	
 	s1.data = dict(x = x, y = s1y, sdplus = s1sdplus, sdminus = s1sdminus, 
 	               color = color)
@@ -195,7 +217,9 @@ def update_data(attrname, old, new):
 	               color = color)
 	p2.title.text = 'NN ' + qName + ' difference, average of nearest ' + str(ks) + ' neighbors'
 	
-	s3.data = dict(x = s3x, y = s3y, color = color)
+	s3.data = dict(x = s3x, xsdplus = s3xsdplus, xsdminus = s3xsdminus,
+                   y = s3y, ysdplus = s3ysdplus, ysdminus = s3ysdminus, 
+				   color = color)
 	p3.title.text = 'Plot of ' + y3name + ' vs. ' + x3name
 	p3.xaxis.axis_label = x3name
 	p3.yaxis.axis_label = y3name
