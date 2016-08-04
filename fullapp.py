@@ -159,10 +159,10 @@ p3.circle('x', 'y', color = 'color', source = s3, size = 12, alpha = 0.65)
 kneighb = Slider(title = 'Number of nearest neighbors to average', value = 1, start = 1, end = (k - 1), step = 1)
 radio_button_group = RadioButtonGroup(labels=["NN Distance", "NN Index"], active=0)
 menu = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation')]
-dropdown = Dropdown(label = 'Parameter', menu = menu, default_value = 'Area')
+dropdown = Dropdown(label = 'Parameter', menu = menu, value = 'Area')
 menu2 = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation'), ('Distance', 'Distance')]
-x3drop = Dropdown(label = 'X-axis', menu = menu2, default_value = 'Area')
-y3drop = Dropdown(label = 'Y-axis', menu = menu2, default_value = 'Area')
+x3drop = Dropdown(label = 'X-axis', menu = menu2, value = 'Area')
+y3drop = Dropdown(label = 'Y-axis', menu = menu2, value = 'Area')
 w = widgetbox(kneighb, radio_button_group, dropdown, x3drop, y3drop)
 
 #Set up callbacks
