@@ -140,20 +140,20 @@ s3 = ColumnDataSource(data = dict(x = qbar, xsdplus = qsdplus, xsdminus = qsdmin
 								  color = color))
 	
 #Set up plot
-p1 = figure(width = 600, height = 400, title = 'NND',
+p1 = figure(width = 600, height = 400, title = 'Nearest Neighbor Distance',
 			x_axis_label = 'Formation time, s')
 p1.segment('x', 'sdplus', 'x', 'sdminus', source = s1, line_width = 2)
 p1.circle('x', 'y', color = 'color', source = s1, size = 12, alpha = 0.65)
 
 
-p2 = figure(width = 600, height = 400, title = 'NNQ',
+p2 = figure(width = 600, height = 400, title = 'Area difference of Nearest Neighbors',
 			x_axis_label = 'Formation time, s')
 
 p2.segment('x', 'sdplus', 'x', 'sdminus', source = s2, line_width = 2)
 p2.circle('x', 'y', color = 'color', source = s2, size = 12, alpha = 0.65)
 
-p3 = figure(width = 600, height = 400, title = 'NNQ',
-			x_axis_label = 'Distance',
+p3 = figure(width = 600, height = 400, title = 'Plot of Area vs. Area (NN difference)',
+			x_axis_label = 'Area',
 			y_axis_label = 'Area')
 p3.segment('x', 'ysdplus', 'x', 'ysdminus', source = s3, line_width = 2)
 p3.segment('xsdplus', 'y', 'xsdminus', 'y', source = s3, line_width = 2)
@@ -174,7 +174,9 @@ w = widgetbox(kneighb, radio_button_group1, radio_button_group2, dropdown, x3dro
 def update_data(attrname, old, new):
 	ks = kneighb.value
 	rbg1 = radio_button_group1.active
+	rbg1labels = ["NN Distance", "NN Index"]
 	rbg2 = radio_button_group2.active
+	rbg2labels = ["Average", "NN Difference", "NN Difference Index"]
 	qName = dropdown.value
 	x3name = x3drop.value
 	y3name = y3drop.value
@@ -217,16 +219,16 @@ def update_data(attrname, old, new):
 	
 	s1.data = dict(x = x, y = s1y, sdplus = s1sdplus, sdminus = s1sdminus, 
 	               color = color)
-	p1.title.text = 'NNI, Average of nearest ' + str(ks) + ' neighbors'
+	p1.title.text = rbg1labels[rbg1] + ' of nearest ' + str(ks) + ' neighbors'
 		
 	s2.data = dict(x = x, y = s2y, sdplus = s2sdplus, sdminus = s2sdminus, 
 	               color = color)
-	p2.title.text = 'NN ' + qName + ' difference, average of nearest ' + str(ks) + ' neighbors'
+	p2.title.text = qName + ' ' + rbg2labels[rbg2] + ' of nearest ' + str(ks) + ' neighbors (if applicable)'
 	
 	s3.data = dict(x = s3x, xsdplus = s3xsdplus, xsdminus = s3xsdminus,
                    y = s3y, ysdplus = s3ysdplus, ysdminus = s3ysdminus, 
 				   color = color)
-	p3.title.text = 'Plot of ' + y3name + ' vs. ' + x3name
+	p3.title.text = 'Plot of ' + y3name + ' vs. ' + x3name + ' ' + rbg2labels[rbg2]
 	p3.xaxis.axis_label = x3name
 	p3.yaxis.axis_label = y3name
 	
