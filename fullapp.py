@@ -55,13 +55,12 @@ def angledev(ang1, ang2):
     return anglediff	
 		
 def getMeanQDiffs(SampleList, dfList, qName, k):
-	qbar = []
-	qi = []
-	qsd = []
-	qisd = []
+	result_names = ['mean', 'devbar', 'index', 'sd', 'devsd', 'indexsd']
+	resultDF = pd.DataFrame(columns = result_names)
 	
 	for sample in SampleList:
 		nnqlist = []
+		qlist = []
 		for entry in dfList:
 			if entry['name'].startswith(sample['name']):
 				quantity = np.array(entry['df'][qName])
@@ -74,18 +73,21 @@ def getMeanQDiffs(SampleList, dfList, qName, k):
 					else:
 						qDiffList = [abs(quantity[i] - quantity[indices[i]]) for i in ind0]
 					nnqlist.extend(qDiffList)
+					qlist.extend([quantity[i] for i in indices])
          
        
 		NNQbar = np.mean(nnqlist)
 		NNQsd = np.std(nnqlist)
 		NNQexp = mad(nnqlist)
-    
-		qbar.append(NNQbar)
-		qi.append(NNQbar / NNQexp)
-		qsd.append(NNQsd)
-		qisd.append(NNQsd / NNQexp)
+		
+		Qbar = np.mean(qlist)
+		Qsd = np.std(qlist)
+
+		loopdata = np.array([[Qbar, NNQbar, (NNQbar / NNQexp), Qsd, NNQsd, (NNQsd / NNQexp)]])
+		loopdf = pd.DataFrame(data = loopdata, columns = result_names)
+		resultDF = resultDF.append(loopdf)
 	
-	return qbar, qi, qsd, qisd
+	return resultDF
 	
 #Load Data from files
 SampleList = [{'name': 'r1c1', 'time': 130, 'color': '#38AB80'},
@@ -114,7 +116,9 @@ for file in filelist:
 x = [sample['time'] for sample in SampleList]
 color = [sample['color'] for sample in SampleList]
 dbar, nni, dsd, nnisd = GetNNs(SampleList, dfList, 1)
-qbar, qnni, qsd, qisd = getMeanQDiffs(SampleList, dfList, 'Area', 1)
+qdf = getMeanQDiffs(SampleList, dfList, 'Area', 1)
+qbar = qdf['mean']
+qsd = qdf['sd']
 
 sd_factor = 4
 
@@ -157,18 +161,20 @@ p3.circle('x', 'y', color = 'color', source = s3, size = 12, alpha = 0.65)
 
 # Set up widgets
 kneighb = Slider(title = 'Number of nearest neighbors to average', value = 1, start = 1, end = (k - 1), step = 1)
-radio_button_group = RadioButtonGroup(labels=["NN Distance", "NN Index"], active=0)
+radio_button_group1 = RadioButtonGroup(labels=["NN Distance", "NN Index"], active = 0)
+radio_button_group2 = RadioButtonGroup(labels=["Average", "NN Difference", "NN Difference Index"], active=0)
 menu = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation')]
 dropdown = Dropdown(label = 'Parameter', menu = menu, value = 'Area')
 menu2 = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation'), ('Distance', 'Distance')]
 x3drop = Dropdown(label = 'X-axis', menu = menu2, value = 'Area')
 y3drop = Dropdown(label = 'Y-axis', menu = menu2, value = 'Area')
-w = widgetbox(kneighb, radio_button_group, dropdown, x3drop, y3drop)
+w = widgetbox(kneighb, radio_button_group1, radio_button_group2, dropdown, x3drop, y3drop)
 
 #Set up callbacks
 def update_data(attrname, old, new):
 	ks = kneighb.value
-	rbg = radio_button_group.active
+	rbg1 = radio_button_group1.active
+	rbg2 = radio_button_group2.active
 	qName = dropdown.value
 	x3name = x3drop.value
 	y3name = y3drop.value
@@ -176,35 +182,35 @@ def update_data(attrname, old, new):
 	x = [sample['time'] for sample in SampleList]
 	color = [sample['color'] for sample in SampleList]
 	dresult = GetNNs(SampleList, dfList, ks)
-	s1y = dresult[rbg]
-	s1sd = dresult[(rbg + 2)]
+	s1y = dresult[rbg1]
+	s1sd = dresult[(rbg1 + 2)]
 	s1sdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s1y, s1sd)]
 	s1sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s1y, s1sd)]
 	
-	qresult = getMeanQDiffs(SampleList, dfList, qName, ks)
-	s2y = qresult[rbg]
-	s2sd = qresult[(rbg + 2)]
+	qdf = getMeanQDiffs(SampleList, dfList, qName, ks)
+	s2y = qdf.iloc[:, rbg2]
+	s2sd = qdf.iloc[:, (rbg2 + 3)]
 	s2sdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	s2sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	
 	if x3name == 'Distance':
-		s3x = dresult[rbg]
-		s3xsd = dresult[(rbg + 2)]
+		s3x = dresult[rbg2]
+		s3xsd = dresult[(rbg2 + 2)]
 	else:
 		s3xqresult = getMeanQDiffs(SampleList, dfList, x3name, ks)
-		s3x = s3xqresult[rbg]
-		s3xsd = s3xqresult[(rbg + 2)]
+		s3x = s3xqresult.iloc[:, rbg2]
+		s3xsd = s3xqresult.iloc[:, (rbg2 + 3)]
 	
 	s3xsdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s3x, s3xsd)]
 	s3xsdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s3x, s3xsd)]	
 	
 	if y3name == 'Distance':
-		s3y = dresult[rbg]
-		s3ysd = dresult[(rbg + 2)]
+		s3y = dresult[rbg2]
+		s3ysd = dresult[(rbg2 + 2)]
 	else:
 		s3yqresult = getMeanQDiffs(SampleList, dfList, y3name, ks)
-		s3y = s3yqresult[rbg]
-		s3ysd = s3yqresult[(rbg + 2)]
+		s3y = s3yqresult.iloc[:, rbg2]
+		s3ysd = s3yqresult.iloc[:, (rbg2 + 3)]
 		
 	s3ysdplus = [bar + sd / (2 * sd_factor) for bar, sd in zip(s3y, s3ysd)]
 	s3ysdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s3y, s3ysd)]	
@@ -225,7 +231,8 @@ def update_data(attrname, old, new):
 	p3.yaxis.axis_label = y3name
 	
 kneighb.on_change('value', update_data)
-radio_button_group.on_change('active', update_data)
+radio_button_group1.on_change('active', update_data)
+radio_button_group2.on_change('active', update_data)
 dropdown.on_change('value', update_data)
 x3drop.on_change('value', update_data)
 y3drop.on_change('value', update_data)
