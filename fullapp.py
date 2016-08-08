@@ -194,8 +194,8 @@ def update_data(attrname, old, new):
 	s2sdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s2y, s2sd)]
 	
 	if x3name == 'Distance':
-		s3x = dresult[rbg2]
-		s3xsd = dresult[(rbg2 + 2)]
+		s3x = dresult[rbg1]
+		s3xsd = dresult[(rbg1 + 2)]
 	else:
 		s3xqresult = getMeanQDiffs(SampleList, dfList, x3name, ks)
 		s3x = s3xqresult.iloc[:, rbg2]
@@ -205,8 +205,8 @@ def update_data(attrname, old, new):
 	s3xsdminus = [bar - sd / (2 * sd_factor) for bar, sd in zip(s3x, s3xsd)]	
 	
 	if y3name == 'Distance':
-		s3y = dresult[rbg2]
-		s3ysd = dresult[(rbg2 + 2)]
+		s3y = dresult[rbg1]
+		s3ysd = dresult[(rbg1 + 2)]
 	else:
 		s3yqresult = getMeanQDiffs(SampleList, dfList, y3name, ks)
 		s3y = s3yqresult.iloc[:, rbg2]
