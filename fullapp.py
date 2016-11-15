@@ -6,7 +6,7 @@ from scipy.spatial import KDTree
 from bokeh.io import curdoc
 from bokeh.layouts import layout, widgetbox
 from bokeh.models import ColumnDataSource
-from bokeh.models.widgets import Slider, TextInput, RadioButtonGroup, Dropdown
+from bokeh.models.widgets import Slider, TextInput, RadioButtonGroup, Dropdown, Paragraph
 from bokeh.plotting import figure
 
 
@@ -100,11 +100,15 @@ SampleList = [{'name': 'r1c1', 'time': 130, 'color': '#38AB80'},
               {'name': 'r2c4', 'time': 1015, 'color': '#E083F9'},
               {'name': 'r2c5', 'time': 1755, 'color': '#E083F9'}]
 
-k = 20
+k = 2
 dfList = []
+umperpx = 0.03236
 for file in filelist:
     name = file.split('.')[0].split('/')[1]
     df = pd.read_csv(file, delim_whitespace = True)
+    df.X = df.X * umperpx
+    df.Y = df.Y * umperpx
+    df.Area = df.Area * (umperpx ** 2)
     [nndist, indices] = treequerycalc(df, k)
     distdf = pd.DataFrame(nndist, columns = ['dist' + str(i) for i in np.arange(k)])
     inddf = pd.DataFrame(indices, columns = ['ind' + str(i) for i in np.arange(k)])
@@ -152,9 +156,9 @@ p2 = figure(width = 600, height = 400, title = 'Area difference of Nearest Neigh
 p2.segment('x', 'sdplus', 'x', 'sdminus', source = s2, line_width = 2)
 p2.circle('x', 'y', color = 'color', source = s2, size = 12, alpha = 0.65)
 
-p3 = figure(width = 600, height = 400, title = 'Plot of Area vs. Area (NN difference)',
-			x_axis_label = 'Area',
-			y_axis_label = 'Area')
+p3 = figure(width = 600, height = 400, title = 'Plot of Area vs. Area',
+			x_axis_label = 'Area (um^2)',
+			y_axis_label = 'Area (um^2)')
 p3.segment('x', 'ysdplus', 'x', 'ysdminus', source = s3, line_width = 2)
 p3.segment('xsdplus', 'y', 'xsdminus', 'y', source = s3, line_width = 2)
 p3.circle('x', 'y', color = 'color', source = s3, size = 12, alpha = 0.65)
@@ -164,11 +168,18 @@ kneighb = Slider(title = 'Number of nearest neighbors to average', value = 1, st
 radio_button_group1 = RadioButtonGroup(labels=["NN Distance", "NN Index"], active = 0)
 radio_button_group2 = RadioButtonGroup(labels=["Average", "NN Difference", "NN Difference Index"], active=0)
 menu = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation')]
-dropdown = Dropdown(label = 'Parameter', menu = menu, value = 'Area')
+dropdown = Dropdown(label = 'Lower Right Parameter', menu = menu, value = 'Area')
 menu2 = [('Area', 'Area'), ('Coherency', 'Coherency'), ('Orientaiton', 'Orientation'), ('Distance', 'Distance')]
-x3drop = Dropdown(label = 'X-axis', menu = menu2, value = 'Area')
-y3drop = Dropdown(label = 'Y-axis', menu = menu2, value = 'Area')
-w = widgetbox(kneighb, radio_button_group1, radio_button_group2, dropdown, x3drop, y3drop)
+x3drop = Dropdown(label = 'Lower Left X-axis', menu = menu2, value = 'Area')
+y3drop = Dropdown(label = 'Lower Left Y-axis', menu = menu2, value = 'Area')
+
+pTXT = Paragraph(text = """Welcome to the interactive Nearest Neighbor data explorer. The first toggle controls
+ the top right plot, selecting average NN distance in microns, or NN Index (normalized by the number of domains).
+ The next menus control the lower two plots: select which parameter to be plotted with the dropdown menus, and
+ use the toggle to pick average value, average NN difference, or NN difference index. Green points are constant
+ flow series, Pink are constant volume series. Error bars are 1/4 standard deviation.""")
+
+w = widgetbox(pTXT, radio_button_group1, dropdown, x3drop, y3drop, radio_button_group2)
 
 #Set up callbacks
 def update_data(attrname, old, new):
@@ -219,11 +230,11 @@ def update_data(attrname, old, new):
 	
 	s1.data = dict(x = x, y = s1y, sdplus = s1sdplus, sdminus = s1sdminus, 
 	               color = color)
-	p1.title.text = rbg1labels[rbg1] + ' of nearest ' + str(ks) + ' neighbors'
+	p1.title.text = rbg1labels[rbg1]
 		
 	s2.data = dict(x = x, y = s2y, sdplus = s2sdplus, sdminus = s2sdminus, 
 	               color = color)
-	p2.title.text = qName + ' ' + rbg2labels[rbg2] + ' of nearest ' + str(ks) + ' neighbors (if applicable)'
+	p2.title.text = qName + ' ' + rbg2labels[rbg2]
 	
 	s3.data = dict(x = s3x, xsdplus = s3xsdplus, xsdminus = s3xsdminus,
                    y = s3y, ysdplus = s3ysdplus, ysdminus = s3ysdminus, 
@@ -240,5 +251,5 @@ x3drop.on_change('value', update_data)
 y3drop.on_change('value', update_data)
 
 #add to document
-curdoc().add_root(layout([[w, p1], [p3, p2]], sizing_mode = 'stretch_both'))
-curdoc().title = "test"
+curdoc().add_root(layout([[w, p1], [p3, p2]], sizing_mode = 'scale_width'))
+curdoc().title = "NN Explorer"
